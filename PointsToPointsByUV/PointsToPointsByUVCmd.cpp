@@ -4,18 +4,22 @@
 
 
 //先选目标体再选本体
-MStatus PointsToPointsByUV::doIt( const MArgList& )
+MStatus PointsToPointsByUV::doIt( const MArgList& arglist)
 {
 	MStatus stat = MS::kSuccess;
 
+	//解析参数
+	uvIndex = arglist.flagIndex(uvshortFlag, uvlongFlag);
+	isUVactive = arglist.asBool(uvIndex + 1);
+	if (arglist.length() == 0)isHasArguments = false;
 
 	return redoIt();
 }
 
 MStatus PointsToPointsByUV::redoIt()
 {
-	setResult( "PointsToPointsByUV command executed!\n" );
-
+	MString resultString;
+	
 	MSelectionList selectObjs;
 	MGlobal::getActiveSelectionList(selectObjs);
 	selectObjs.getDagPath(0, dagpath1);
@@ -25,36 +29,46 @@ MStatus PointsToPointsByUV::redoIt()
 
 	mfnMesh1.getPoints(pointsArray1);
 	mfnMesh2.getPoints(pointsArray2);
-	MStringArray uvSetnames;
-	mfnMesh1.getUVSetNames(uvSetnames);
-	
-	MPointArray targetPoints;
-	for (int i = 0; i < pointsArray2.length();i++)
+
+	if (!isUVactive || !isHasArguments)
 	{
-		//先获取本体的UV值
-		float2 tempuv;
-		mfnMesh2.getUVAtPoint(pointsArray2[i], tempuv);
-
-		//然后根据UV查找目标体的对应点,
-		MIntArray tempIDs;
-		MPointArray tempPoints;
-		mfnMesh1.getPointsAtUV(tempIDs, tempPoints, tempuv, MSpace::kObject, &uvSetnames[0], 0.0001);
-
-		if (tempPoints.length() > 0)
-			targetPoints.append(tempPoints[0]);
-		else
-			targetPoints.append(MPoint(0, 0, 0));
+		MStatus statu = mfnMesh2.setPoints(pointsArray1);
+		if (statu == MS::kSuccess)resultString = "PointsToPoints execute successfully!!";
 	}
-	//最后将该点的数值赋予本体
-	mfnMesh2.setPoints(targetPoints);
+	else
+	{
+		MStringArray uvSetnames;
+		mfnMesh1.getUVSetNames(uvSetnames);
 
-	MGlobal::displayInfo("执行成功!");
+		MPointArray targetPointsByUV;
+		for (unsigned i = 0; i < pointsArray2.length(); i++)
+		{
+			//先获取本体的UV值
+			float2 tempuv;
+			mfnMesh2.getUVAtPoint(pointsArray2[i], tempuv);
+
+			//然后根据UV查找目标体的对应点,
+			MIntArray tempIDs;
+			MPointArray tempPoints;
+			mfnMesh1.getPointsAtUV(tempIDs, tempPoints, tempuv, MSpace::kObject, &uvSetnames[0], 0.0001);
+
+			if (tempPoints.length() > 0)
+				targetPointsByUV.append(tempPoints[0]);
+			else
+				targetPointsByUV.append(MPoint(0, 0, 0));
+		}
+		//最后将该点的数值赋予本体
+		MStatus statu = mfnMesh2.setPoints(targetPointsByUV);
+		if (statu == MS::kSuccess)resultString = "PointsToPointsByUV execute successfully!!";
+	}
+
+	setResult(resultString);
 	return MS::kSuccess;
 }
 
 MStatus PointsToPointsByUV::undoIt()
 {
-	MFnMesh mfnMesh1(dagpath1);//1是目标体
+	//MFnMesh mfnMesh1(dagpath1);//1是目标体
 	MFnMesh mfnMesh2(dagpath2);//2是本体
 
 	mfnMesh2.setPoints(pointsArray2);
