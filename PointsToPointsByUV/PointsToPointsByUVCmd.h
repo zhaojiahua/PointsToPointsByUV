@@ -14,6 +14,8 @@
 #include <maya/MVectorArray.h>
 #include <maya/MIntArray.h>
 #include <maya/MArgList.h>
+#include <maya/MItMeshPolygon.h>
+#include <maya/MItGeometry.h>
 
 class PointsToPointsByUV : public MPxCommand
 {
@@ -39,6 +41,8 @@ private:
 public:
 	bool isUVactive = true;
 	bool isHasArguments = true;
+	MIntArray GetPlolygonIDs(MDagPath inpath);
+
 };
 
 #endif

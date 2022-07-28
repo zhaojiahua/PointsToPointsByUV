@@ -38,38 +38,28 @@ MStatus PointsToPointsByUV::redoIt()
 	else
 	{
 		//获取mesh1的所有polygonID
-		MIntArray targetPolygonIDs;
-		MStringArray uvSetnames;
-		mfnMesh1.getUVSetNames(uvSetnames);
-		for (unsigned i = 0; i < pointsArray1.length(); i++)
+		MIntArray targetPolygonIDs = GetPlolygonIDs(dagpath1);
+
+		MString uvSetname1 = mfnMesh1.currentUVSetName();
+		MString uvSetname2 = mfnMesh2.currentUVSetName();
+		
+		MItGeometry Geo2It(dagpath2);
+		for (Geo2It.reset(); !Geo2It.isDone(); Geo2It.next())
 		{
-			int tempID;
-			float2 tempUV;
-			mfnMesh1.getUVAtPoint(pointsArray1[i], tempUV, MSpace::kObject, &uvSetnames[0], &tempID);
-			targetPolygonIDs.append(tempID);
-		}
-		MPointArray targetPointsByUV;
-		for (unsigned i = 0; i < pointsArray2.length(); i++)
-		{
+			MPoint tempPoint = Geo2It.position(MSpace::kObject);
 			//先获取本体的UV值
-			float2 tempuv;
-			mfnMesh2.getUVAtPoint(pointsArray2[i], tempuv, MSpace::kObject, &uvSetnames[0]);
+			float2 tempUV;
+			mfnMesh2.getUVAtPoint(tempPoint, tempUV, MSpace::kObject, &uvSetname2);
 
-			//然后根据UV查找目标体的对应点,
-			
-			MPointArray tempPoints;
-			mfnMesh1.getPointsAtUV(targetPolygonIDs, tempPoints, tempuv, MSpace::kObject, &uvSetnames[0], 0.1);
+			//根据UV值查找目标体对应的点
+			MPointArray tempPointsArray;
+			mfnMesh1.getPointsAtUV(targetPolygonIDs, tempPointsArray, tempUV, MSpace::kObject, &uvSetname1, 0.01);
 
-			if (tempPoints.length() > 0)
-				targetPointsByUV.append(tempPoints[0]);
-			else
-				targetPointsByUV.append(MPoint(0, 0, 0));
+			//设置对应点的位置
+			Geo2It.setPosition(tempPointsArray[0], MSpace::kObject);
 		}
-		//最后将该点的数值赋予本体
-		MStatus statu = mfnMesh2.setPoints(targetPointsByUV);
-		if (statu == MS::kSuccess)resultString = "PointsToPointsByUV execute successfully!!";
+		resultString = "PointsToPointsByUV execute successfully!!";
 	}
-
 	setResult(resultString);
 	return MS::kSuccess;
 }
@@ -91,12 +81,23 @@ void* PointsToPointsByUV::creator()
 	return new PointsToPointsByUV();
 }
 
+MIntArray PointsToPointsByUV::GetPlolygonIDs(MDagPath inpath)
+{
+	MItMeshPolygon meshPolygonIt(inpath);
+	MIntArray tempIntArray;
+	for (meshPolygonIt.reset(); !meshPolygonIt.isDone(); meshPolygonIt.next())
+	{
+		tempIntArray.append(meshPolygonIt.index());
+	}
+	return tempIntArray;
+}
+
+
 PointsToPointsByUV::PointsToPointsByUV()
 {}
 
 PointsToPointsByUV::~PointsToPointsByUV()
-{
-}
+{}
 
 bool PointsToPointsByUV::isUndoable() const
 {
