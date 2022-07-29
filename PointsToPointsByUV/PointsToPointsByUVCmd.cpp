@@ -53,10 +53,13 @@ MStatus PointsToPointsByUV::redoIt()
 
 			//根据UV值查找目标体对应的点
 			MPointArray tempPointsArray;
-			mfnMesh1.getPointsAtUV(targetPolygonIDs, tempPointsArray, tempUV, MSpace::kObject, &uvSetname1, 0.01);
+			MStatus statu = mfnMesh1.getPointsAtUV(targetPolygonIDs, tempPointsArray, tempUV, MSpace::kObject, &uvSetname1, 0.1);
 
-			//设置对应点的位置
-			Geo2It.setPosition(tempPointsArray[0], MSpace::kObject);
+			if (statu==MS::kSuccess)
+			{
+				//设置对应点的位置
+				if (tempPointsArray.length() > 0) Geo2It.setPosition(tempPointsArray[0], MSpace::kObject);
+			}
 		}
 		resultString = "PointsToPointsByUV execute successfully!!";
 	}
