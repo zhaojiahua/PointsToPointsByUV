@@ -37,8 +37,7 @@ MStatus PointsToPointsByUV::redoIt()
 	}
 	else
 	{
-		//获取mesh1的所有polygonID
-		MIntArray targetPolygonIDs = GetPlolygonIDs(dagpath1);
+		
 
 		MString uvSetname1 = mfnMesh1.currentUVSetName();
 		MString uvSetname2 = mfnMesh2.currentUVSetName();
@@ -46,19 +45,22 @@ MStatus PointsToPointsByUV::redoIt()
 		MItGeometry Geo2It(dagpath2);
 		for (Geo2It.reset(); !Geo2It.isDone(); Geo2It.next())
 		{
-			MPoint tempPoint = Geo2It.position(MSpace::kObject);
+			MPoint tempPoint2 = Geo2It.position(MSpace::kObject);
 			//先获取本体的UV值
 			float2 tempUV;
-			mfnMesh2.getUVAtPoint(tempPoint, tempUV, MSpace::kObject, &uvSetname2);
+			mfnMesh2.getUVAtPoint(tempPoint2, tempUV, MSpace::kObject, &uvSetname2);
 
-			//根据UV值查找目标体对应的点
-			MPointArray tempPointsArray;
-			MStatus statu = mfnMesh1.getPointsAtUV(targetPolygonIDs, tempPointsArray, tempUV, MSpace::kObject, &uvSetname1, 0.1);
+			int targetPolygonID;//用来存储polygonID
+			//先根据UV值查找相应的polygonID
+			mfnMesh1.intersectFaceAtUV(tempUV, targetPolygonID, &uvSetname1);
+			//然后根据UV值查找目标体对应的点
+			MPoint tempPoint1;
+			MStatus statu = mfnMesh1.getPointAtUV(targetPolygonID, tempPoint1, tempUV, MSpace::kObject, &uvSetname1, 0.1);
 
 			if (statu==MS::kSuccess)
 			{
 				//设置对应点的位置
-				if (tempPointsArray.length() > 0) Geo2It.setPosition(tempPointsArray[0], MSpace::kObject);
+				Geo2It.setPosition(tempPoint1, MSpace::kObject);
 			}
 		}
 		resultString = "PointsToPointsByUV execute successfully!!";
